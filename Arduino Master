@@ -1,0 +1,103 @@
+#include <LiquidCrystal_I2C.h>
+
+//https://www.tinkercad.com/things/4gfNtV8Ndcz-proyecto-2-gr-ev/editel?sharecode=hLq4QspnWDEfUTd_ZDFgfA0BtUdddiKVJoRAvZR3AYA tinkercad
+//https://wokwi.com/projects/398436662233317377 wokwi
+
+//Codigo para LCD donde se menciona dirección y tamaño
+LiquidCrystal_I2C lcd (0x27, 16, 2);
+
+//definición de estados de LCD
+typedef enum estados {s0, s1, s2} estados;
+estados estadoActual = s0;
+estados estadoFuturo = s0;
+
+//pines switches
+const uint8_t switch1 = 12;
+const uint8_t switch2 = 13;
+
+//definición de mensajes
+String mensaje1 = "Quieres jugar?";
+String mensaje2 = "Juega!        ";
+
+const long interval = 2000;  // interval at which to blink (milliseconds)
+unsigned long previousMillis = 0;
+
+void setup() {
+  //Lcd se prende
+  lcd.init();
+  lcd.backlight();
+
+  Serial.begin(9600);
+  
+  //entradas
+  pinMode(switch1, INPUT_PULLUP);
+  pinMode(switch2, INPUT_PULLUP);
+}
+
+void loop() {
+  //Estados switchs
+  boolean estadoSwitch1 = digitalRead(switch1);
+  boolean estadoSwitch2 = digitalRead(switch2);
+ 
+  //transiciones de estado
+  switch(estadoActual){
+    case s0:
+      if(estadoSwitch1 == HIGH)
+        estadoFuturo = s1;
+      else
+        estadoFuturo = s0;
+      break;
+    case s1:
+      if(estadoSwitch2 == HIGH)
+        estadoFuturo = s2;
+      else
+        estadoFuturo = s1;
+      break;
+    case s2:
+      if(estadoSwitch1 == LOW)
+        estadoFuturo = s0;
+      else
+        estadoFuturo = s2;
+      break;
+  }
+
+  //salidas en cada estado
+  switch(estadoActual){
+    case s0:
+      lcd.setCursor(0,0);
+      lcd.clear();
+      break;
+    case s1:
+      lcd.setCursor(0,0);
+      lcd.print(mensaje1);
+      break;
+    case s2:
+      lcd.setCursor(0,0);
+      lcd.print(mensaje2);
+      break;
+  }
+  
+  // Arduino con potenciometros (Arduino 1)
+  // Leer valores de los potenciometros
+  int potenciometro1 = analogRead(A0);
+  int potenciometro2 = analogRead(A1);
+
+  // Mapear los valores de los potenciometros a 0-179 grados
+  int angulo1 = map(potenciometro1, 0, 1023, 0, 179);
+  int angulo2 = map(potenciometro2, 0, 1023, 0, 179);
+
+  // Enviar valores mapeados por el puerto serie
+  Serial.print(angulo1);
+  Serial.print(",");
+  Serial.print(angulo2);
+  Serial.println(); 
+  
+   // actualización de estado
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis >= interval) {
+    estadoActual = estadoFuturo;
+    previousMillis = currentMillis;
+  }
+
+  delay(100);
+}
